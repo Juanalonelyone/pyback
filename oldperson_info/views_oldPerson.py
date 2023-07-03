@@ -7,6 +7,7 @@ from django.shortcuts import render
 from djangoProject import result
 from oldperson_info import models
 from oldperson_info.models import OldpersonInfo
+from rest_framework.decorators import api_view
 
 
 def add(request):
@@ -20,3 +21,17 @@ def add(request):
             return result.Result.is_exist('用户id')
         models.OldpersonInfo.objects.create(**data)
         return result.Result.success(data)
+
+
+@api_view(['DELETE'])
+def delete(request, id):
+    old_person = models.OldpersonInfo.objects.get(id=id)
+    if old_person == '':
+        return result.Result.notfound('没有这位老人')
+
+    try:
+        old_person.delete()
+        return result.Result.success(id)
+    except old_person.DoesNotExist:
+        return result.Result.error('删除失败')
+

@@ -17,3 +17,5 @@ def login(request):
         if models.Admin.objects.filter(admin_name=admin_name, admin_password=admin_password).exists():
             return result.Result.success(data)
         return result.Result.notfound('用户不存在或密码错误，请重新输入')
+
+

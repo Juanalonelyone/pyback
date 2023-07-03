@@ -23,4 +23,5 @@ urlpatterns = [
     path('login/', views.login),
     # 对老人表进行操作
     path('add_oldPerson/', views_oldPerson.add),
+    path('delete_oldPerson/<id>', views_oldPerson.delete),
 ]
