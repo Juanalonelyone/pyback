@@ -17,6 +17,7 @@ Including another URLconf
 from django.urls import path
 from first_app import views
 from oldperson_info import views_oldPerson
+from event import views_event
 
 urlpatterns = [
     # 管理员登陆
@@ -26,5 +27,10 @@ urlpatterns = [
     path('delete_oldPerson/<id>', views_oldPerson.delete),
     path('update_oldPerson/', views_oldPerson.update),
     path('select_old/<parameter>', views_oldPerson.select_old),
-    path('select_allOld/', views_oldPerson.select)
+    path('select_allOld/', views_oldPerson.select),
+    # 对事件表进行操作
+    path('add_event/', views_event.add),
+    path('select_event/<parameter>', views_event.select_event),
+    path('select_allEvent/', views_event.select_all),
+    path('select_EventId/<id>', views_event.select_id)
 ]
