@@ -9,16 +9,16 @@ class Result:
 
     # 未找到数据
     def notfound(self):
-        return JsonResponse({'code': 401, 'msg': '查询失败:' + self})
+        return JsonResponse({'code': 401, 'msg': self})
 
     # 主键已存在
     def is_exist(self):
-        return JsonResponse({'code': 402, 'msg': self + '已存在'})
+        return JsonResponse({'code': 402, 'msg': self})
 
     # 数据为空
     def data_null(self):
-        return JsonResponse({'code': 403, 'msg': self + '不能为空'})
+        return JsonResponse({'code': 403, 'msg': self})
 
     # 发生错误
     def error(self):
-        return JsonResponse({'code': 404, 'msg': self + '不能为空'})
+        return JsonResponse({'code': 404, 'msg': self})

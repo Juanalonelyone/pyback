@@ -4,7 +4,7 @@ from django.db import models
 
 
 class OldpersonInfo(models.Model):
-    id = models.IntegerField(primary_key=True)
+    id = models.CharField(primary_key=True, max_length=255)
     name = models.CharField(max_length=255, blank=True, null=True)
     phone = models.CharField(max_length=255, blank=True, null=True)
     card_id = models.CharField(max_length=255, blank=True, null=True)

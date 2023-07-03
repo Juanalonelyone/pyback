@@ -24,4 +24,7 @@ urlpatterns = [
     # 对老人表进行操作
     path('add_oldPerson/', views_oldPerson.add),
     path('delete_oldPerson/<id>', views_oldPerson.delete),
+    path('update_oldPerson/', views_oldPerson.update),
+    path('select_old/<parameter>', views_oldPerson.select_old),
+    path('select_allOld/', views_oldPerson.select)
 ]
