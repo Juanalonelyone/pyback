@@ -1,7 +1,7 @@
-# pyback
-the backsite for term project
+# Note
 
-
-需要的依赖：opencv, django
-pip install pymysql
+## 需要的依赖：
+pip install pymysql </br>
+pip install django </br>
+pip install djangorestframework </br>
 
