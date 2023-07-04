@@ -19,6 +19,7 @@ from first_app import views
 from oldperson_info import views_oldPerson
 from event import views_event
 from worker import views_Worker
+from vol import views_vol
 
 urlpatterns = [
     # 管理员登陆
@@ -28,6 +29,15 @@ urlpatterns = [
     path('delete_oldPerson/<id>', views_oldPerson.delete),
     path('update_oldPerson/', views_oldPerson.update),
     path('select_old/<parameter>', views_oldPerson.select_old),
+    path('select_allOld/', views_oldPerson.select),
+
+
+    path('add_vol/', views_vol.add),
+    path('delete_vol/<id>', views_vol.delete),
+    path('update_vol/', views_vol.update),
+    path('select_vol/<parameter>', views_vol.select_vol),
+    path('select_allVol/', views_vol.select),
+
     path('select_allOld/', views_oldPerson.select),
     # 对事件表进行操作
     path('add_event/', views_event.add),

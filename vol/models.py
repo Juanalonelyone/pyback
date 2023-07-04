@@ -14,3 +14,4 @@ class Vol(models.Model):
     class Meta:
         managed = True
         db_table = 'vol'
+

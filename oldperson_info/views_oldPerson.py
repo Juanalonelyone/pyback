@@ -19,7 +19,7 @@ def add(request):
         if old_person.id == '':
             return result.Result.data_null('数据不能为空')
         if models.OldpersonInfo.objects.filter(id=old_person.id).exists():
-            return result.Result.is_exist('用户id不存在')
+            return result.Result.is_exist('用户id已存在')
         models.OldpersonInfo.objects.create(**data)
         return result.Result.success(data)
 
