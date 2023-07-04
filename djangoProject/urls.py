@@ -20,6 +20,7 @@ from oldperson_info import views_oldPerson
 from event import views_event
 from worker import views_Worker
 from vol import views_vol
+from video_catch import views_video_catch
 
 urlpatterns = [
     # 管理员登陆
@@ -51,4 +52,6 @@ urlpatterns = [
     path('update_Worker/', views_Worker.update),
     path('select_Worker/', views_Worker.select_worker),
     path('select_allWorker/', views_Worker.select),
+
+    path('video/', views_video_catch.video_catch),
 ]

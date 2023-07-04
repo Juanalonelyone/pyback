@@ -39,7 +39,8 @@ INSTALLED_APPS = [
     'oldperson_info',
     'worker',
     'event',
-    'vol'
+    'vol',
+    'video_catch'
 ]
 
 MIDDLEWARE = [
