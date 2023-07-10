@@ -48,10 +48,10 @@ urlpatterns = [
     path('select_allOld/', views_oldPerson.select),
     # 对工作人员表进行操作
     path('add_Worker/', views_Worker.add),
-    path('delete_Worker/', views_Worker.delete),
+    path('delete_Worker/<id>', views_Worker.delete),
     path('update_Worker/', views_Worker.update),
-    path('select_Worker/', views_Worker.select_worker),
+    path('select_Worker/<parameter>', views_Worker.select_worker),
     path('select_allWorker/', views_Worker.select),
 
-    path('video/', views_video_catch.video_catch),
+    path('video/<id>', views_video_catch.video_catch),
 ]
