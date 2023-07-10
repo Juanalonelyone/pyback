@@ -78,7 +78,7 @@ def get_frame(id):
 
         # 人脸识别
         frame = recognize_faces(frame, detections, known_faces_encodings, known_faces_names)
-        frame, i = falldetection(True, frame, i)
+        frame = falldetection(True, frame)
         # 将帧转换为字节流
         ret, buffer = cv2.imencode('.jpg', frame)
         frame = buffer.tobytes()
