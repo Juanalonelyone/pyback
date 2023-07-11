@@ -29,7 +29,8 @@ from tensorflow.python.client import device_lib
 
 # 加载人脸检测器模型
 face_detector = cv2.dnn.readNetFromCaffe('deploy.prototxt',
-                                         'D:\\work\\mini\\pyback\\video_catch\\res10_300x300_ssd_iter_140000_fp16.caffemodel')
+                                         'C:\\Users\\XJH\\Desktop\\djangoProject\\djangoProject\\video_catch'
+                                         '\\res10_300x300_ssd_iter_140000_fp16.caffemodel')
 
 # 加载人脸识别模型
 known_faces_encodings = []
@@ -74,11 +75,13 @@ def get_frame(id):
         #                         cv2.LINE_AA)
 
         # 人脸检测
-        detections = detect_faces(frame, face_detector)
+        if id == '0':
+            detections = detect_faces(frame, face_detector)
 
-        # 人脸识别
-        frame = recognize_faces(frame, detections, known_faces_encodings, known_faces_names)
-        frame = falldetection(True, frame)
+            # 人脸识别
+            frame = recognize_faces(frame, detections, known_faces_encodings, known_faces_names)
+        elif id == '1':
+            frame = falldetection(True, frame)
         # 将帧转换为字节流
         ret, buffer = cv2.imencode('.jpg', frame)
         frame = buffer.tobytes()

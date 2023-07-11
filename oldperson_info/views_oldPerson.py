@@ -31,6 +31,9 @@ def delete(request, id):
     if old_person == '':
         return result.Result.notfound('没有这位老人')
     try:
+        data = models.Event.objects.filter(old_id=old_person.id)
+        for item in data:
+            item.delete()
         old_person.delete()
         return result.Result.success(id)
     except old_person.DoesNotExist:
