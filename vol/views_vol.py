@@ -50,6 +50,7 @@ def update(request):
 
 @api_view(['GET'])
 def select_vol(request, parameter):
+    print(parameter)
     try:
         data = models.Vol.objects.get(Q(id=parameter) | Q(name=parameter))
         data_dict = {key: value for key, value in data.__dict__.items() if key != '_state'}
