@@ -23,10 +23,11 @@ class OldpersonInfo(models.Model):
 
 class Event(models.Model):
     id = models.IntegerField(primary_key=True)
-    old_id = models.CharField(primary_key=False, max_length=255)
+    old = models.ForeignKey('OldpersonInfo', models.DO_NOTHING, blank=True, null=True)
     location = models.CharField(max_length=255, blank=True, null=True)
     time = models.CharField(max_length=255, blank=True, null=True)
     desc = models.CharField(max_length=255, blank=True, null=True)
+    img_url = models.CharField(max_length=255, blank=True, null=True)
 
     class Meta:
         managed = True

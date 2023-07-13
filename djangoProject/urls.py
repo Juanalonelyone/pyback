@@ -54,4 +54,6 @@ urlpatterns = [
     path('select_allWorker/', views_Worker.select),
 
     path('video/<id>', views_video_catch.video_catch),
+
+
 ]

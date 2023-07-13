@@ -1,11 +1,13 @@
 import json
 
 from django.db.models import Q
+from django.http import JsonResponse
 from django.shortcuts import render
 from rest_framework.decorators import api_view
 
 
 from djangoProject import result
+from img import get_image_info_from_path
 from worker import models
 from worker.models import Worker
 
@@ -14,15 +16,34 @@ from worker.models import Worker
 # 增加工作人员信息
 @api_view(['POST'])
 def add(request):
-    if request.method == 'POST':
-        data = json.loads(request.body)
-        new_worker = Worker(**data)
-        if new_worker.id == '':
-            return result.Result.data_null('数据不能为空')
-        if models.Worker.objects.filter(id=new_worker.id).exists():
-            return result.Result.is_exist('用户id已存在')
-        models.Worker.objects.create(**data)
-        return result.Result.success(data)
+    if request.method == 'POST' and request.FILES['img']:
+        last_worker = models.Worker.objects.last()
+        if last_worker is None:
+            last_id = 0
+        else:
+            last_id = int(last_worker.id)
+        # print(last_id)
+        image_file = request.FILES['img']
+        data = json.loads(request.POST['worker'])  # 获取老人信息的JSON数据
+        saved_path = 'C:/img/worker/' + str(last_id + 1) + '.jpg'
+        # 创建OldpersonInfo对象并保存到数据库
+        data['id'] = str(last_id + 1)
+        data['img_url'] = saved_path
+        worker = models.Worker.objects.create(**data)
+
+        # 在这里执行保存图像的操作
+        # 假设你有一个名为'uploads'的Media文件夹用于保存图像文件
+        # 你可以使用Django的默认存储设置来保存图像文件
+
+        with open(saved_path, 'wb') as f:
+            for chunk in image_file.chunks():
+                f.write(chunk)
+
+        # 返回图像保存路径和新创建的老人信息给前端
+        response_data = {'msg': '员工信息和图像保存成功', 'path': saved_path, 'worker': worker.id}
+        return JsonResponse(response_data)
+    else:
+        return result.Result.data_null('数据不能为空')
 
 
 # 删除工作人员信息
@@ -41,15 +62,29 @@ def delete(request, id):
 # 更新工作人员信息
 @api_view(['PUT'])
 def update(request):
-    data = json.loads(request.body)
-    update_worker = Worker(**data)
-    if models.Worker.objects.filter(id=update_worker.id).exists():
-        try:
-            models.Worker.objects.filter(id=update_worker.id).update(**data)
-            return result.Result.success(update_worker.id)
-        except update_worker.DoesNotExist:
-            return result.Result.error('更新失败')
-    return result.Result.notfound('未找到更新对象')
+    data = json.loads(request.data['worker'])   # 获取老人信息的JSON数据
+    data_id = data['id']
+    if 'img' in request.FILES:
+        image_file = request.FILES['img']
+        saved_path = 'C:/img/worker/' + data_id + '.jpg'
+        # 创建OldpersonInfo对象并保存到数据库
+        data['img_url'] = saved_path
+        with open(saved_path, 'wb') as f:
+            for chunk in image_file.chunks():
+                f.write(chunk)
+    if models.Worker.objects.filter(id=data_id).exists():
+        models.Worker.objects.filter(id=data_id).update(**data)
+
+        # 在这里执行保存图像的操作
+        # 假设你有一个名为'uploads'的Media文件夹用于保存图像文件
+        # 你可以使用Django的默认存储设置来保存图像文件
+        # 返回图像保存路径和新创建的老人信息给前端
+        response_data = {'msg': '员工信息和图像保存成功'}
+        return JsonResponse(response_data)
+    else:
+        return result.Result.notfound("修改的数据不存在")
+
+
 
 
 # 查询所有工作人员
@@ -72,6 +107,9 @@ def select_worker(request, parameter):
     try:
         data = models.Worker.objects.get(Q(id=parameter) | Q(workername=parameter))
         data_dict = {key: value for key, value in data.__dict__.items() if key != '_state'}
+        img_url = data_dict.get('img_url')
+        image_info = get_image_info_from_path(img_url)
+        data_dict['image_info'] = image_info
         return result.Result.success(data_dict)
     except:
-        return result.Result.notfound('查询失败')
+        return result.Result.notfound("查询失败")
