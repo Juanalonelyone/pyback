@@ -15,6 +15,8 @@ Including another URLconf
     2. Add a URL to urlpatterns:  path('blog/', include('blog.urls'))
 """
 from django.urls import path
+
+from cap import views_cap
 from first_app import views
 from oldperson_info import views_oldPerson
 from event import views_event
@@ -53,6 +55,11 @@ urlpatterns = [
     path('select_allWorker/', views_Worker.select),
 
     path('video/<id>', views_video_catch.video_catch),
-
+    # 对摄像头进行操作
+    path('add_Cap/',views_cap.add),
+    path('delete_Cap/<id>',views_cap.delete),
+    path('update_Cap/',views_cap.update),
+    path('select_Cap/<id>',views_cap.select),
+    path('select_allCap/',views_cap.selectAll),
 
 ]

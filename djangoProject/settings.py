@@ -41,7 +41,8 @@ INSTALLED_APPS = [
     'event',
     'vol',
     'video_catch',
-    'corsheaders'
+    'corsheaders',
+    'cap'
 ]
 
 MIDDLEWARE = [

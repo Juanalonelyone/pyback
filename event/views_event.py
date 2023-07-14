@@ -17,6 +17,7 @@ from img import get_image_info_from_path
 
 @api_view(['POST'])
 def add(request):
+
     if request.method == 'POST':
         data = json.loads(request.body)
         if models.OldpersonInfo.objects.filter(id=data['old_id']):

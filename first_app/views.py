@@ -1,5 +1,7 @@
 import json
 
+from rest_framework.decorators import api_view
+
 from first_app import models
 from djangoProject import result
 
@@ -7,6 +9,7 @@ from djangoProject import result
 # Create your views here.
 
 
+@api_view(['POST'])
 def login(request):
     if request.method == 'POST':
         data = json.loads(request.body)
