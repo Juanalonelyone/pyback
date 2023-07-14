@@ -6,3 +6,5 @@ pip install django </br>
 pip install djangorestframework </br>
 pip install tensorflow </br>
 pip install opencv-python</br>
+pip install ultralytics</br>
+

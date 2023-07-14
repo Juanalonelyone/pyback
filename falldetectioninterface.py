@@ -57,6 +57,7 @@ def falldetection(success, img):
                     bs = 2
                 elif baseH < -40:
                     bs = 0
+                    i = 0
             if bs == 2:
                 cv2.putText(img, str("fall"), (450, 100), cv2.FONT_HERSHEY_PLAIN, 5, (255, 255, 0), 5)
         else:

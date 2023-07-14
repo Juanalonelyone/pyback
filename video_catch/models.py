@@ -17,3 +17,15 @@ class OldpersonInfo(models.Model):
     class Meta:
         managed = False
         db_table = 'oldperson_info'
+
+class Event(models.Model):
+    id = models.IntegerField(primary_key=True)
+    old = models.ForeignKey('OldpersonInfo', models.DO_NOTHING, blank=True, null=True)
+    location = models.CharField(max_length=255, blank=True, null=True)
+    time = models.CharField(max_length=255, blank=True, null=True)
+    desc = models.CharField(max_length=255, blank=True, null=True)
+    img_url = models.CharField(max_length=255, blank=True, null=True)
+
+    class Meta:
+        managed = False
+        db_table = 'event'
