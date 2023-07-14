@@ -39,13 +39,12 @@ urlpatterns = [
     path('select_vol/<parameter>', views_vol.select_vol),
     path('select_allVol/', views_vol.select),
 
-    path('select_allOld/', views_oldPerson.select),
     # 对事件表进行操作
     path('add_event/', views_event.add),
     path('select_event/<parameter>', views_event.select_event),
     path('select_allEvent/', views_event.select_all),
     path('select_EventId/<id>', views_event.select_id),
-    path('select_allOld/', views_oldPerson.select),
+    path('delete_Event/<id>', views_event.delete),
     # 对工作人员表进行操作
     path('add_Worker/', views_Worker.add),
     path('delete_Worker/<id>', views_Worker.delete),
