@@ -132,7 +132,7 @@ def stream_thread(queueForGain, queueForSend, id):
                         # TODU 插入数据库
                         frame = cv2.imread('./runs/detect/fall' + id + '/image0.jpg', flags=1)
                         frame = cv2.cvtColor(frame, cv2.COLOR_BGR2RGB)
-                        add_img('./img/event-img/', frame, '摔倒了')
+                        add_img('./img/event-img/fall/', frame, '摔倒了')
                         fall_counter = 0
             frame = cv2.imread('./runs/detect/fall' + id + '/image0.jpg', flags=1)
             frame = cv2.cvtColor(frame, cv2.COLOR_BGR2RGB)
@@ -153,7 +153,7 @@ def stream_thread(queueForGain, queueForSend, id):
                         # TODU 插入数据库
                         frame = cv2.imread('./runs/detect/fire' + id + '/image0.jpg', flags=1)
                         frame = cv2.cvtColor(frame, cv2.COLOR_BGR2RGB)
-                        add_img('./img/event-img/', frame, '着火了')
+                        add_img('./img/event-img/fire/', frame, '着火了')
                         fire_counter = 0
 
             frame = cv2.imread('./runs/detect/fire' + id + '/image0.jpg', flags=1)
@@ -172,14 +172,14 @@ def stream_thread(queueForGain, queueForSend, id):
             for index, row in predictions.iterrows():
                 class_name = row['name']
                 confidence = row['confidence']
-                if class_name == 'fall detected' and confidence > 0.5:
+                if class_name == 'anger' and confidence > 0.5:
                     fall_counter += 1
                     print(fall_counter)
                     if fall_counter >= 150:
                         # TODU 插入数据库
                         frame = cv2.imread('./runs/detect/emotion' + id + '/image0.jpg', flags=1)
                         frame = cv2.cvtColor(frame, cv2.COLOR_BGR2RGB)
-                        add_img('./img/event-img/', frame, '老人很悲伤')
+                        add_img('./img/event-img/emotion/', frame, '老人很生气')
                         fall_counter = 0
             frame = cv2.imread('./runs/detect/emotion' + id + '/image0.jpg', flags=1)
             frame = cv2.cvtColor(frame, cv2.COLOR_BGR2RGB)
@@ -226,6 +226,7 @@ def enable_video_stream(request):
     # return JsonResponse({'message':'视频停止'})
 
 
+# no used
 def get_frame(id):
     cap1 = models.Cap.objects.get(id=id)
     has_face = cap1.has_face
@@ -367,13 +368,14 @@ def add_img(path, frame, event_desc):
     else:
         last_event = int(last_event.id + 1)
     today_time = datetime.datetime.today()
-    today_time = today_time.strftime("%Y/{month}/{day} %H:%M:%S".format(month=str(today_time.month).lstrip('0'),
+    str_today_time = today_time.strftime("%Y/{month}/{day} %H:%M:%S".format(month=str(today_time.month).lstrip('0'),
                                                                         day=str(today_time.day).lstrip('0')))
     # 将本地时间转换为字符串
-    time_string = today_time.strftime("%Y/{month}/{day}-%H:%M:%S".format(month=str(today_time.month).lstrip('0'),
-                                                                         day=str(today_time.day).lstrip('0')))
-    cv2.imwrite(path + time_string + '.jpg', frame)
-    models.Event.objects.create(id=last_event, old_id=None, location='餐厅', time=today_time, desc=event_desc,
-                                img_url=path + time_string + '.jpg')
+    today_time_string = today_time.strftime("%Y-{month}-{day}-%H-%M-%S".format(month=str(today_time.month).lstrip('0'),
+                                                                        day=str(today_time.day).lstrip('0')))
+
+    cv2.imwrite(path + today_time_string + '.jpg', frame)
+    models.Event.objects.create(id=last_event, old_id=None, location='餐厅', time=str_today_time, desc=event_desc,
+                                img_url=path + today_time_string + '.jpg')
 
     return True

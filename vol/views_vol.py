@@ -4,15 +4,18 @@ from django.db.models import Q
 from django.http import JsonResponse
 
 from djangoProject import result
+from face_Module import FaceDepart
 from img import get_image_info_from_path
+from video_catch import views_video_catch
 from vol import models
 from vol.models import Vol
 from rest_framework.decorators import api_view
 
-#对护工的增删改查
+
+# 对护工的增删改查
 
 
-#添加护工信息
+# 添加护工信息
 @api_view(['POST'])
 def add(request):
     if request.method == 'POST' and request.FILES['img']:
@@ -23,7 +26,8 @@ def add(request):
             last_id = int(last_vol.id)
         image_file = request.FILES['img']
         data = json.loads(request.POST['vol'])  # 获取老人信息的JSON数据
-        saved_path = 'C:/img/vol/' + str(last_id + 1) + '.jpg'
+        name = data['name']
+        saved_path = './face_Module/face_db/vol_' + name + '_' + str(last_id + 1) + '.jpg'
         # 创建OldpersonInfo对象并保存到数据库
         data['id'] = str(last_id + 1)
         data['img_url'] = saved_path
@@ -39,6 +43,7 @@ def add(request):
 
         # 返回图像保存路径和新创建的老人信息给前端
         response_data = {'msg': '义工信息和图像保存成功', 'path': saved_path, 'vol': vol.id}
+        FaceDepart.load_faces(views_video_catch.model, views_video_catch.faces_embedding, views_video_catch.face_db)
         return JsonResponse(response_data)
     else:
         return result.Result.data_null('数据不能为空')
@@ -62,7 +67,8 @@ def update(request):
     data_id = data['id']
     if 'img' in request.FILES:
         image_file = request.FILES['img']
-        saved_path = 'C:/img/vol/' + data_id + '.jpg'
+        name = data['name']
+        saved_path = './face_Module/face_db/vol_' + name + data_id + '.jpg'
         # 创建OldpersonInfo对象并保存到数据库
         data['img_url'] = saved_path
         with open(saved_path, 'wb') as f:
@@ -76,10 +82,10 @@ def update(request):
         # 你可以使用Django的默认存储设置来保存图像文件
         # 返回图像保存路径和新创建的老人信息给前端
         response_data = {'msg': '义工信息和图像保存成功'}
+        FaceDepart.load_faces(views_video_catch.model, views_video_catch.faces_embedding, views_video_catch.face_db)
         return JsonResponse(response_data)
     else:
         return result.Result.notfound("修改的数据不存在")
-
 
 
 # 根据条件查询
