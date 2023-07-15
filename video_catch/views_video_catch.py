@@ -41,10 +41,10 @@ det_size = (640, 640)
 #
 # model2 = YOLO('D:/work/mini/pyback/best-violence.pt')
 
-model1 = torch.hub.load('./yolov5master', 'custom', './best.pt',
+model_fall = torch.hub.load('./yolov5master', 'custom', './best.pt',
                         source='local')
 
-model3 = torch.hub.load('./yolov5master', 'custom', './best-firev5.pt',
+model_fire = torch.hub.load('./yolov5master', 'custom', './best-firev5.pt',
                         source='local')
 
 model_emotion = torch.hub.load('./yolov5master', 'custom', './best-emotion.pt',
@@ -73,6 +73,7 @@ FaceDepart.load_faces(model, faces_embedding, face_db_path=face_db)
 
 def video_generator(queueForGain, id):
     readCap = models.Cap.objects.get(id=id)
+    cap = None
     if readCap.url == '0':
         cap = cv2.VideoCapture(0)
     else:
@@ -85,6 +86,8 @@ def video_generator(queueForGain, id):
     while True:
         queueForGain.put(cap.read()[1])
         queueForGain.get() if queueForGain.qsize() > 1 else time.sleep(0.01)
+
+
 
 
 def stream_thread(queueForGain, queueForSend, id):
@@ -103,10 +106,13 @@ def stream_thread(queueForGain, queueForSend, id):
         frame = queueForGain.get()
         # 调用算法全加这里！！！！！！！！！！！！！！！！！！！！！！！！！！
         frame = cv2.resize(frame, (640, 480))
+        if has_face == '1':
+            frame = FaceDepart.cameraWithCap(model, faces_embedding, threshold, frame)
         if has_fall == '1':
-            frame = model1(frame)
+            frame = model_fall(frame)
             predictions = frame.pandas().xyxy[0]
-            frame.save('./runs/detect/fall/fall0.jpg', exist_ok=True)
+            frame.save(save_dir='runs/detect/fall'+id, exist_ok=True)
+            # print(frame)
             # 遍历每个检测结果
             for index, row in predictions.iterrows():
                 class_name = row['name']
@@ -116,18 +122,18 @@ def stream_thread(queueForGain, queueForSend, id):
                     print(fall_counter)
                     if fall_counter >= 150:
                         # TODU 插入数据库
-                        frame = cv2.imread('./runs/detect/exp/image0.jpg', flags=1)
+                        frame = cv2.imread('./runs/detect/fall'+id+'/image0.jpg', flags=1)
                         frame = cv2.cvtColor(frame, cv2.COLOR_BGR2RGB)
                         add_img('./img/event-img/', frame, '摔倒了')
                         fall_counter = 0
-            frame = cv2.imread('./runs/detect/exp/image0.jpg', flags=1)
+            frame = cv2.imread('./runs/detect/fall'+id+'/image0.jpg', flags=1)
             frame = cv2.cvtColor(frame, cv2.COLOR_BGR2RGB)
 
         if has_fire == '1':
-            frame = model3(frame)
+            frame = model_fire(frame)
             # v5版本获取标签
             predictions = frame.pandas().xyxy[0]
-            frame.save('./runs/detect/fire/fire.jpg', exist_ok=True)
+            frame.save(save_dir='runs/detect/fire'+id, exist_ok=True)
             # 遍历每个检测结果
             for index, row in predictions.iterrows():
                 class_name = row['name']
@@ -137,12 +143,12 @@ def stream_thread(queueForGain, queueForSend, id):
                     print(fall_counter)
                     if fire_counter >= 150:
                         # TODU 插入数据库
-                        frame = cv2.imread('./runs/detect/exp/image0.jpg', flags=1)
+                        frame = cv2.imread('./runs/detect/fire'+id+'/image0.jpg', flags=1)
                         frame = cv2.cvtColor(frame, cv2.COLOR_BGR2RGB)
                         add_img('./img/event-img/', frame, '着火了')
                         fire_counter = 0
 
-            frame = cv2.imread('./runs/detect/exp/image0.jpg', flags=1)
+            frame = cv2.imread('./runs/detect/fire'+id+'/image0.jpg', flags=1)
             frame = cv2.cvtColor(frame, cv2.COLOR_BGR2RGB)
 
         if has_violence == '1':
@@ -150,7 +156,26 @@ def stream_thread(queueForGain, queueForSend, id):
             frame = frame[0].plot()
 
         if has_emotion == '1':
-            frame = frame
+            frame = model_emotion(frame)
+            predictions = frame.pandas().xyxy[0]
+            frame.save(save_dir='runs/detect/emotion' + id, exist_ok=True)
+            # print(frame)
+            # 遍历每个检测结果
+            for index, row in predictions.iterrows():
+                class_name = row['name']
+                confidence = row['confidence']
+                if class_name == 'fall detected' and confidence > 0.5:
+                    fall_counter += 1
+                    print(fall_counter)
+                    if fall_counter >= 150:
+                        # TODU 插入数据库
+                        frame = cv2.imread('./runs/detect/emotion' + id + '/image0.jpg', flags=1)
+                        frame = cv2.cvtColor(frame, cv2.COLOR_BGR2RGB)
+                        add_img('./img/event-img/', frame, '老人很悲伤')
+                        fall_counter = 0
+            frame = cv2.imread('./runs/detect/emotion' + id + '/image0.jpg', flags=1)
+            frame = cv2.cvtColor(frame, cv2.COLOR_BGR2RGB)
+
 
         # time.sleep(0.1)
         queueForSend.put(frame)
@@ -180,12 +205,12 @@ def video_stream(request, id):
 
 
 def get_frame(id):
-    cap = models.Cap.objects.get(id=id)
-    has_face = cap.has_face
-    has_emotion = cap.has_emotion
-    has_fall = cap.has_fall
-    has_fire = cap.has_fire
-    has_violence = cap.has_violence
+    cap1 = models.Cap.objects.get(id=id)
+    has_face = cap1.has_face
+    has_emotion = cap1.has_emotion
+    has_fall = cap1.has_fall
+    has_fire = cap1.has_fire
+    has_violence = cap1.has_violence
     # fall_detection = FallDetection(weights_path='D:\work\mini\pyback\yolov5s.pt')
     cap = cv2.VideoCapture(0)
     # cap = cv2.VideoCapture('http://192.168.98.159/mjpeg/1')
@@ -226,7 +251,7 @@ def get_frame(id):
             frame = cv2.cvtColor(frame, cv2.COLOR_BGR2RGB)
 
         if fall_counter == '1':
-            frame = model1(frame)
+            frame = model_fall(frame)
 
             predictions = frame.pandas().xyxy[0]
 
@@ -319,12 +344,12 @@ def add_img(path, frame, event_desc):
         last_event = 0
     else:
         last_event = int(last_event.id + 1)
-    current_time = datetime.datetime.now().time()
     today_time = datetime.datetime.today()
     today_time = today_time.strftime("%Y/{month}/{day} %H:%M:%S".format(month=str(today_time.month).lstrip('0'),
                                                                         day=str(today_time.day).lstrip('0')))
     # 将本地时间转换为字符串
-    time_string = current_time.strftime("%H-%M-%S")
+    time_string = today_time.strftime("%Y/{month}/{day}-%H:%M:%S".format(month=str(today_time.month).lstrip('0'),
+                                                                        day=str(today_time.day).lstrip('0')))
     cv2.imwrite(path + time_string + '.jpg', frame)
     models.Event.objects.create(id=last_event, old_id=None, location='餐厅', time=today_time, desc=event_desc,
                                 img_url=path + time_string + '.jpg')

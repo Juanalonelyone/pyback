@@ -18,7 +18,7 @@ from sklearn import preprocessing
 # faces_embedding = list()
 
 
-def load_faces(model, faces_embedding,face_db_path):
+def load_faces(model, faces_embedding, face_db_path):
     if not os.path.exists(face_db_path):
         os.makedirs(face_db_path)
     for root, dirs, files in os.walk(face_db_path):
