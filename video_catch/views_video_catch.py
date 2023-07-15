@@ -9,7 +9,7 @@ from django.shortcuts import render
 from django.http import StreamingHttpResponse
 import cv2
 import numpy as np
-import tensorflow as tf
+# import tensorflow as tf
 import datetime
 
 import face_recognition
@@ -18,7 +18,7 @@ from ultralytics import YOLO
 from ultralytics.yolo.utils.ops import non_max_suppression
 
 # from fall_detection import FallDetection
-from falldetectioninterface import falldetection
+# from falldetectioninterface import falldetection
 from video_catch import models
 
 sys.path.append("../face_Module")
@@ -48,7 +48,7 @@ model3 = torch.hub.load('./yolov5master', 'custom', './best-firev5.pt',
                         source='local')
 
 model_emotion = torch.hub.load('./yolov5master', 'custom', './best-emotion.pt',
-                        source='local')
+                               source='local')
 
 model2 = YOLO('./best-violence.pt')
 
@@ -70,13 +70,13 @@ model.prepare(ctx_id=gpu_id, det_thresh=det_thresh, det_size=det_size)
 faces_embedding = list()
 FaceDepart.load_faces(model, faces_embedding, face_db_path=face_db)
 
+
 def video_generator(queueForGain, id):
-    if id == "1":
-        print("id:"+id)
+    readCap = models.Cap.objects.get(id=id)
+    if readCap.url == '0':
         cap = cv2.VideoCapture(0)
     else:
-        print("id:"+id)
-        cap = cv2.VideoCapture('http://192.168.137.229:4747/video')
+        cap = cv2.VideoCapture(readCap.url)
 
     if cap.isOpened():
         print("ok")
@@ -87,7 +87,7 @@ def video_generator(queueForGain, id):
         queueForGain.get() if queueForGain.qsize() > 1 else time.sleep(0.01)
 
 
-def stream_thread(queueForGain, queueForSend,id):
+def stream_thread(queueForGain, queueForSend, id):
     # 读取算法权限
     cap = models.Cap.objects.get(id=id)
     has_face = cap.has_face
@@ -106,7 +106,7 @@ def stream_thread(queueForGain, queueForSend,id):
         if has_fall == '1':
             frame = model1(frame)
             predictions = frame.pandas().xyxy[0]
-            frame.save(exist_ok=True)
+            frame.save('./runs/detect/fall/fall0.jpg', exist_ok=True)
             # 遍历每个检测结果
             for index, row in predictions.iterrows():
                 class_name = row['name']
@@ -127,7 +127,7 @@ def stream_thread(queueForGain, queueForSend,id):
             frame = model3(frame)
             # v5版本获取标签
             predictions = frame.pandas().xyxy[0]
-            frame.save(exist_ok=True)
+            frame.save('./runs/detect/fire/fire.jpg', exist_ok=True)
             # 遍历每个检测结果
             for index, row in predictions.iterrows():
                 class_name = row['name']
@@ -157,7 +157,6 @@ def stream_thread(queueForGain, queueForSend,id):
 
 
 def video_stream(request, id):
-
     queueForGain = Queue()
     queueForSend = Queue()
 
@@ -165,7 +164,7 @@ def video_stream(request, id):
     thread_generator.daemon = True
     thread_generator.start()
 
-    thread_stream = threading.Thread(target=stream_thread, args=(queueForGain, queueForSend,id))
+    thread_stream = threading.Thread(target=stream_thread, args=(queueForGain, queueForSend, id))
     thread_stream.daemon = True
     thread_stream.start()
 
@@ -194,124 +193,121 @@ def get_frame(id):
     violence_counter = 0
     fire_counter = 0
     while True:
-        with tf.device('/GPU:0'):
-            ret, frame = cap.read()
-            if not ret:
-                break
-            frame = cv2.resize(frame, (640, 480))
-            # 火灾检测
-            if fire_counter == '1':
-                frame = model(frame)
-                # v5版本获取标签
-                predictions = frame.pandas().xyxy[0]
+        # with tf.device('/GPU:0'):
+        ret, frame = cap.read()
+        if not ret:
+            break
+        frame = cv2.resize(frame, (640, 480))
+        # 火灾检测
+        if fire_counter == '1':
+            frame = model(frame)
+            # v5版本获取标签
+            predictions = frame.pandas().xyxy[0]
 
-                frame.save(exist_ok=True)
+            frame.save(exist_ok=True)
 
-                # 遍历每个检测结果
-                for index, row in predictions.iterrows():
-                    class_name = row['name']
-                    confidence = row['confidence']
+            # 遍历每个检测结果
+            for index, row in predictions.iterrows():
+                class_name = row['name']
+                confidence = row['confidence']
 
-                    #
-                    if class_name == 'fire' and confidence > 0.3:
-                        fire_counter += 1
-                        print(fall_counter)
-                        if fire_counter >= 150:
-                            # TODU 插入数据库
-                            frame = cv2.imread('D:/work/mini/pyback/runs/detect/exp/image0.jpg', flags=1)
-                            frame = cv2.cvtColor(frame, cv2.COLOR_BGR2RGB)
-                            add_img('C:/img/event-img/', frame, '着火了')
-                            fire_counter = 0
+                #
+                if class_name == 'fire' and confidence > 0.3:
+                    fire_counter += 1
+                    print(fall_counter)
+                    if fire_counter >= 150:
+                        # TODU 插入数据库
+                        frame = cv2.imread('D:/work/mini/pyback/runs/detect/exp/image0.jpg', flags=1)
+                        frame = cv2.cvtColor(frame, cv2.COLOR_BGR2RGB)
+                        add_img('C:/img/event-img/', frame, '着火了')
+                        fire_counter = 0
 
-                frame = cv2.imread('D:/work/mini/pyback/runs/detect/exp/image0.jpg', flags=1)
-                frame = cv2.cvtColor(frame, cv2.COLOR_BGR2RGB)
+            frame = cv2.imread('D:/work/mini/pyback/runs/detect/exp/image0.jpg', flags=1)
+            frame = cv2.cvtColor(frame, cv2.COLOR_BGR2RGB)
 
-            if fall_counter == '1':
-                frame = model1(frame)
+        if fall_counter == '1':
+            frame = model1(frame)
 
-                predictions = frame.pandas().xyxy[0]
+            predictions = frame.pandas().xyxy[0]
 
-                frame.save(exist_ok=True)
+            frame.save(exist_ok=True)
 
-                # 遍历每个检测结果
-                for index, row in predictions.iterrows():
-                    class_name = row['name']
-                    confidence = row['confidence']
+            # 遍历每个检测结果
+            for index, row in predictions.iterrows():
+                class_name = row['name']
+                confidence = row['confidence']
 
-                    #
-                    if class_name == 'fall detected' and confidence > 0.5:
-                        fall_counter += 1
-                        print(fall_counter)
-                        if fall_counter >= 150:
-                            # TODU 插入数据库
-                            frame = cv2.imread('D:/work/mini/pyback/runs/detect/exp/image0.jpg', flags=1)
-                            frame = cv2.cvtColor(frame, cv2.COLOR_BGR2RGB)
-                            add_img('C:/img/event-img/', frame, '摔倒了')
-                            fall_counter = 0
-                frame = cv2.imread('D:/work/mini/pyback/runs/detect/exp/image0.jpg', flags=1)
-                frame = cv2.cvtColor(frame, cv2.COLOR_BGR2RGB)
+                #
+                if class_name == 'fall detected' and confidence > 0.5:
+                    fall_counter += 1
+                    print(fall_counter)
+                    if fall_counter >= 150:
+                        # TODU 插入数据库
+                        frame = cv2.imread('D:/work/mini/pyback/runs/detect/exp/image0.jpg', flags=1)
+                        frame = cv2.cvtColor(frame, cv2.COLOR_BGR2RGB)
+                        add_img('C:/img/event-img/', frame, '摔倒了')
+                        fall_counter = 0
+            frame = cv2.imread('D:/work/mini/pyback/runs/detect/exp/image0.jpg', flags=1)
+            frame = cv2.cvtColor(frame, cv2.COLOR_BGR2RGB)
 
-            #
-            # 暴力检测
-            # frame = model2(frame)
-            # predictions = frame[0].boxes.xyxy
-            # predictions = frame[0].boxes
-            # predictions = predictions.cpu().numpy()
-            # for i, box in enumerate(predictions):
-            #     if box.conf[0] > 0.5:
-            #         cls = int(box.cls[0])
-            #         print(cls)
+        #
+        # 暴力检测
+        # frame = model2(frame)
+        # predictions = frame[0].boxes.xyxy
+        # predictions = frame[0].boxes
+        # predictions = predictions.cpu().numpy()
+        # for i, box in enumerate(predictions):
+        #     if box.conf[0] > 0.5:
+        #         cls = int(box.cls[0])
+        #         print(cls)
 
-            # frame = frame[0].plot()
-            # predictions = predictions.shape
-            # print(predictions)
-            # for index, row in predictions:
-            #     class_name = row['name']
-            #     confidence = row['confidence']
-            #
-            #     #
-            #     print(class_name)
-            #     if class_name == 'violence' and confidence > 0.5:
-            #         violence_counter += 1
-            #         print(violence_counter)
-            #         if violence_counter >= 150:
-            #             # TODU 插入数据库
-            #             add_img('C:/img/event-img/', frame, '摔倒了')
-            #             violence_counter = 0
-            # labels = frame.names[1]  # 类别标签
-            # print(counter)
-            # for label in zip(labels):
-            #     print(label)
-            #     if label == 'f':
-            #         print("success")
-            #         counter += 1
+        # frame = frame[0].plot()
+        # predictions = predictions.shape
+        # print(predictions)
+        # for index, row in predictions:
+        #     class_name = row['name']
+        #     confidence = row['confidence']
+        #
+        #     #
+        #     print(class_name)
+        #     if class_name == 'violence' and confidence > 0.5:
+        #         violence_counter += 1
+        #         print(violence_counter)
+        #         if violence_counter >= 150:
+        #             # TODU 插入数据库
+        #             add_img('C:/img/event-img/', frame, '摔倒了')
+        #             violence_counter = 0
+        # labels = frame.names[1]  # 类别标签
+        # print(counter)
+        # for label in zip(labels):
+        #     print(label)
+        #     if label == 'f':
+        #         print("success")
+        #         counter += 1
 
+        # # 遍历检测结果
+        # detection = frame.pred  # 获取单个预测结果
+        #
+        # label = detection['label']
+        # confidence = detection['confidence']
+        # bbox = detection['bbox']
+        #
+        # # 判断是否为你希望预测的事物，例如 'sitting'
+        # if label == 'sitting' and confidence > 0.5:
+        #     # 在这里可以执行你希望的操作，比如计数器加一
+        #     counter += 1
+        #
+        # # 打印计数器的值
+        # print("计数器值：", counter)
 
+        # REadin('摔倒'，)
+        # models.Event.objects.create()
 
-            # # 遍历检测结果
-            # detection = frame.pred  # 获取单个预测结果
-            #
-            # label = detection['label']
-            # confidence = detection['confidence']
-            # bbox = detection['bbox']
-            #
-            # # 判断是否为你希望预测的事物，例如 'sitting'
-            # if label == 'sitting' and confidence > 0.5:
-            #     # 在这里可以执行你希望的操作，比如计数器加一
-            #     counter += 1
-            #
-            # # 打印计数器的值
-            # print("计数器值：", counter)
-
-            # REadin('摔倒'，)
-            # models.Event.objects.create()
-
-
-            # 将帧转换为字节流
-            ret, buffer = cv2.imencode('.jpg', frame)
-            frame = buffer.tobytes()
-            yield (b'--frame\r\n'
-                   b'Content-Type: image/jpeg\r\n\r\n' + frame + b'\r\n\r\n')
+        # 将帧转换为字节流
+        ret, buffer = cv2.imencode('.jpg', frame)
+        frame = buffer.tobytes()
+        yield (b'--frame\r\n'
+               b'Content-Type: image/jpeg\r\n\r\n' + frame + b'\r\n\r\n')
     print(fall_counter)
 
     cap.release()
