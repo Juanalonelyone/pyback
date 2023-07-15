@@ -4,6 +4,7 @@ import insightface
 import numpy as np
 from sklearn import preprocessing
 
+
 # gpu_id = 0
 # face_db = 'face_db'
 # threshold = 1.24
@@ -83,7 +84,7 @@ def register(model, faces_embedding, threshold, image, face_db, user_name):
     return "success"
 
 
-def detect(model, faces_embedding, threshold,image):
+def detect(model, faces_embedding, threshold, image):
     faces = model.get(image)
     results = list()
     for face in faces:
@@ -137,17 +138,18 @@ def camera():
     cv2.destroyAllWindows()
 
 
-def cameraWithCap(model, faces_embedding, threshold,frame):
-    resultCamera = detect(model, faces_embedding, threshold,frame)
+def cameraWithCap(model, faces_embedding, threshold, frame):
+    resultCamera = detect(model, faces_embedding, threshold, frame)
+    unknown = False
     for result in resultCamera:
         bbox = result["bbox"]
         x, y, w, h = bbox
         user_name = result["user_name"]
+        if user_name == "unknown":
+            unknown = True
         # 绘制边界框
         cv2.rectangle(frame, (x, y), (w, h), (0, 255, 0), 2)
         # 在框上显示人名
         cv2.putText(frame, user_name, (x, y - 10), cv2.FONT_HERSHEY_SIMPLEX, 0.9, (0, 255, 0), 2)
 
-    return frame,
-
-
+    return frame,unknown

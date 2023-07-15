@@ -32,6 +32,8 @@ face_db = './face_Module/face_db'
 threshold = 1.24
 det_thresh = 0.50
 det_size = (640, 640)
+# test thread control
+thread_stop = False
 
 # model1 = torch.hub.load('D:/work/mini/pyback/yolov5master', 'custom', 'D:/work/mini/pyback/best.pt',
 #                         source='local')
@@ -42,10 +44,10 @@ det_size = (640, 640)
 # model2 = YOLO('D:/work/mini/pyback/best-violence.pt')
 
 model_fall = torch.hub.load('./yolov5master', 'custom', './best.pt',
-                        source='local')
+                            source='local')
 
 model_fire = torch.hub.load('./yolov5master', 'custom', './best-firev5.pt',
-                        source='local')
+                            source='local')
 
 model_emotion = torch.hub.load('./yolov5master', 'custom', './best-emotion.pt',
                                source='local')
@@ -83,11 +85,9 @@ def video_generator(queueForGain, id):
         print("ok")
     else:
         print("video_generator done")
-    while True:
+    while not thread_stop:
         queueForGain.put(cap.read()[1])
         queueForGain.get() if queueForGain.qsize() > 1 else time.sleep(0.01)
-
-
 
 
 def stream_thread(queueForGain, queueForSend, id):
@@ -102,16 +102,24 @@ def stream_thread(queueForGain, queueForSend, id):
     fall_counter = 0
     violence_counter = 0
     fire_counter = 0
-    while True:
+    unknown_counter = 0
+
+    while not thread_stop:
         frame = queueForGain.get()
         # 调用算法全加这里！！！！！！！！！！！！！！！！！！！！！！！！！！
         frame = cv2.resize(frame, (640, 480))
         if has_face == '1':
-            frame = FaceDepart.cameraWithCap(model, faces_embedding, threshold, frame)
+            frame, unknown = FaceDepart.cameraWithCap(model, faces_embedding, threshold, frame)
+            if unknown:
+                unknown_counter += 1
+                if unknown_counter > 150:
+                    add_img('./img/event-img/face/', frame, '识别到陌生人')
+                    unknown_counter = 0
+
         if has_fall == '1':
             frame = model_fall(frame)
             predictions = frame.pandas().xyxy[0]
-            frame.save(save_dir='runs/detect/fall'+id, exist_ok=True)
+            frame.save(save_dir='runs/detect/fall' + id, exist_ok=True)
             # print(frame)
             # 遍历每个检测结果
             for index, row in predictions.iterrows():
@@ -122,18 +130,18 @@ def stream_thread(queueForGain, queueForSend, id):
                     print(fall_counter)
                     if fall_counter >= 150:
                         # TODU 插入数据库
-                        frame = cv2.imread('./runs/detect/fall'+id+'/image0.jpg', flags=1)
+                        frame = cv2.imread('./runs/detect/fall' + id + '/image0.jpg', flags=1)
                         frame = cv2.cvtColor(frame, cv2.COLOR_BGR2RGB)
                         add_img('./img/event-img/', frame, '摔倒了')
                         fall_counter = 0
-            frame = cv2.imread('./runs/detect/fall'+id+'/image0.jpg', flags=1)
+            frame = cv2.imread('./runs/detect/fall' + id + '/image0.jpg', flags=1)
             frame = cv2.cvtColor(frame, cv2.COLOR_BGR2RGB)
 
         if has_fire == '1':
             frame = model_fire(frame)
             # v5版本获取标签
             predictions = frame.pandas().xyxy[0]
-            frame.save(save_dir='runs/detect/fire'+id, exist_ok=True)
+            frame.save(save_dir='runs/detect/fire' + id, exist_ok=True)
             # 遍历每个检测结果
             for index, row in predictions.iterrows():
                 class_name = row['name']
@@ -143,12 +151,12 @@ def stream_thread(queueForGain, queueForSend, id):
                     print(fall_counter)
                     if fire_counter >= 150:
                         # TODU 插入数据库
-                        frame = cv2.imread('./runs/detect/fire'+id+'/image0.jpg', flags=1)
+                        frame = cv2.imread('./runs/detect/fire' + id + '/image0.jpg', flags=1)
                         frame = cv2.cvtColor(frame, cv2.COLOR_BGR2RGB)
                         add_img('./img/event-img/', frame, '着火了')
                         fire_counter = 0
 
-            frame = cv2.imread('./runs/detect/fire'+id+'/image0.jpg', flags=1)
+            frame = cv2.imread('./runs/detect/fire' + id + '/image0.jpg', flags=1)
             frame = cv2.cvtColor(frame, cv2.COLOR_BGR2RGB)
 
         if has_violence == '1':
@@ -176,8 +184,6 @@ def stream_thread(queueForGain, queueForSend, id):
             frame = cv2.imread('./runs/detect/emotion' + id + '/image0.jpg', flags=1)
             frame = cv2.cvtColor(frame, cv2.COLOR_BGR2RGB)
 
-
-        # time.sleep(0.1)
         queueForSend.put(frame)
 
 
@@ -194,7 +200,7 @@ def video_stream(request, id):
     thread_stream.start()
 
     def streamer():
-        while True:
+        while not thread_stop:
             frame = queueForSend.get()
             ret, buffer = cv2.imencode('.jpg', frame)
             frame = buffer.tobytes()
@@ -206,6 +212,18 @@ def video_stream(request, id):
 
 def video_catch(request, id):
     return StreamingHttpResponse(get_frame(id), content_type='multipart/x-mixed-replace; boundary=frame')
+
+
+def stop_video_stream(request):
+    global thread_stop
+    thread_stop = True
+    # return JsonResponse({'message':'视频停止'})
+
+
+def enable_video_stream(request):
+    global thread_stop
+    thread_stop = False
+    # return JsonResponse({'message':'视频停止'})
 
 
 def get_frame(id):
@@ -353,7 +371,7 @@ def add_img(path, frame, event_desc):
                                                                         day=str(today_time.day).lstrip('0')))
     # 将本地时间转换为字符串
     time_string = today_time.strftime("%Y/{month}/{day}-%H:%M:%S".format(month=str(today_time.month).lstrip('0'),
-                                                                        day=str(today_time.day).lstrip('0')))
+                                                                         day=str(today_time.day).lstrip('0')))
     cv2.imwrite(path + time_string + '.jpg', frame)
     models.Event.objects.create(id=last_event, old_id=None, location='餐厅', time=today_time, desc=event_desc,
                                 img_url=path + time_string + '.jpg')
