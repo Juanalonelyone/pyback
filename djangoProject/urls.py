@@ -54,7 +54,9 @@ urlpatterns = [
     path('select_Worker/<parameter>', views_Worker.select_worker),
     path('select_allWorker/', views_Worker.select),
 
-    path('video/<id>', views_video_catch.video_catch),
+    path('video/<id>', views_video_catch.video_stream),
+    # path('video1/<id>', views_video_catch.video_stream),
+    # path('video2/<id>', views_video_catch.video_stream),
     # 对摄像头进行操作
     path('add_Cap/',views_cap.add),
     path('delete_Cap/<id>',views_cap.delete),

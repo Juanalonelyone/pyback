@@ -1,4 +1,8 @@
 # 假设你使用Django的ORM来进行数据库操作
+import sys
+import time
+
+import insightface
 import torch
 from PIL import Image
 from django.shortcuts import render
@@ -16,32 +20,39 @@ from ultralytics.yolo.utils.ops import non_max_suppression
 # from fall_detection import FallDetection
 from falldetectioninterface import falldetection
 from video_catch import models
-from tensorflow.python.client import device_lib
 
-# gpus = tf.config.experimental.list_physical_devices('GPU')
-# print(gpus)
-# if gpus:
-#     try:
-#         tf.config.experimental.set_visible_devices(gpus[0], 'GPU')
-#         tf.config.experimental.set_memory_growth(gpus[0], True)
-#         print('GPU run')
-#     except RuntimeError as e:
-#         print(e)
+sys.path.append("../face_Module")
+from face_Module import FaceDepart
 
-# 启用TensorFlow GPU加速
-physical_devices = tf.config.list_physical_devices('GPU')
-tf.config.experimental.set_memory_growth(physical_devices[0], True)
+import threading
+from queue import Queue
 
-# # 加载人脸检测器模型
-# face_detector = cv2.dnn.readNetFromCaffe('deploy.prototxt',
-#                                          'D:\\work\\mini\\pyback\\video_catch\\res10_300x300_ssd_iter_140000_fp16.caffemodel')
+gpu_id = 0
+face_db = './face_Module/face_db'
+threshold = 1.24
+det_thresh = 0.50
+det_size = (640, 640)
+
+# model1 = torch.hub.load('D:/work/mini/pyback/yolov5master', 'custom', 'D:/work/mini/pyback/best.pt',
+#                         source='local')
 #
-# # 加载人脸识别模型
-# known_faces_encodings = []
-# known_faces_names = []
-# i = 0
+# model3 = torch.hub.load('D:/work/mini/pyback/yolov5master', 'custom', 'D:/work/mini/pyback/best-firev5.pt',
+#                         source='local')
 #
-# # 从数据库查询已知人脸数据
+# model2 = YOLO('D:/work/mini/pyback/best-violence.pt')
+
+model1 = torch.hub.load('./yolov5master', 'custom', './best.pt',
+                        source='local')
+
+model3 = torch.hub.load('./yolov5master', 'custom', './best-firev5.pt',
+                        source='local')
+
+model_emotion = torch.hub.load('./yolov5master', 'custom', './best-emotion.pt',
+                        source='local')
+
+model2 = YOLO('./best-violence.pt')
+
+# 从数据库查询已知人脸数据
 # known_faces_data = models.OldpersonInfo.objects.all()
 #
 # for face_data in known_faces_data:
@@ -52,17 +63,121 @@ tf.config.experimental.set_memory_growth(physical_devices[0], True)
 #     known_faces_encodings.append(face_encoding)
 #     known_faces_names.append(name)
 
-model1 = torch.hub.load('./yolov5master', 'custom', './best-emotion.pt',
-                        source='local')
+model = insightface.app.FaceAnalysis(root='./',
+                                     allowed_modules=None,
+                                     providers=['CUDAExecutionProvider'])
+model.prepare(ctx_id=gpu_id, det_thresh=det_thresh, det_size=det_size)
+faces_embedding = list()
+FaceDepart.load_faces(model, faces_embedding, face_db_path=face_db)
 
-model = torch.hub.load('./yolov5master', 'custom', './best-firev5.pt',
-                       source='local')
+def video_generator(queueForGain, id):
+    if id == "1":
+        print("id:"+id)
+        cap = cv2.VideoCapture(0)
+    else:
+        print("id:"+id)
+        cap = cv2.VideoCapture('http://192.168.137.229:4747/video')
 
-model2 = YOLO('./best-violence.pt')
+    if cap.isOpened():
+        print("ok")
+    else:
+        print("video_generator done")
+    while True:
+        queueForGain.put(cap.read()[1])
+        queueForGain.get() if queueForGain.qsize() > 1 else time.sleep(0.01)
 
 
-def video_catch(request, id):
-    return StreamingHttpResponse(get_frame(id), content_type='multipart/x-mixed-replace; boundary=frame')
+def stream_thread(queueForGain, queueForSend,id):
+    # 读取算法权限
+    cap = models.Cap.objects.get(id=id)
+    has_face = cap.has_face
+    has_emotion = cap.has_emotion
+    has_fall = cap.has_fall
+    has_fire = cap.has_fire
+    has_violence = cap.has_violence
+
+    fall_counter = 0
+    violence_counter = 0
+    fire_counter = 0
+    while True:
+        frame = queueForGain.get()
+        # 调用算法全加这里！！！！！！！！！！！！！！！！！！！！！！！！！！
+        frame = cv2.resize(frame, (640, 480))
+        if has_fall == '1':
+            frame = model1(frame)
+            predictions = frame.pandas().xyxy[0]
+            frame.save(exist_ok=True)
+            # 遍历每个检测结果
+            for index, row in predictions.iterrows():
+                class_name = row['name']
+                confidence = row['confidence']
+                if class_name == 'fall detected' and confidence > 0.5:
+                    fall_counter += 1
+                    print(fall_counter)
+                    if fall_counter >= 150:
+                        # TODU 插入数据库
+                        frame = cv2.imread('./runs/detect/exp/image0.jpg', flags=1)
+                        frame = cv2.cvtColor(frame, cv2.COLOR_BGR2RGB)
+                        add_img('./img/event-img/', frame, '摔倒了')
+                        fall_counter = 0
+            frame = cv2.imread('./runs/detect/exp/image0.jpg', flags=1)
+            frame = cv2.cvtColor(frame, cv2.COLOR_BGR2RGB)
+
+        if has_fire == '1':
+            frame = model3(frame)
+            # v5版本获取标签
+            predictions = frame.pandas().xyxy[0]
+            frame.save(exist_ok=True)
+            # 遍历每个检测结果
+            for index, row in predictions.iterrows():
+                class_name = row['name']
+                confidence = row['confidence']
+                if class_name == 'fire' and confidence > 0.3:
+                    fire_counter += 1
+                    print(fall_counter)
+                    if fire_counter >= 150:
+                        # TODU 插入数据库
+                        frame = cv2.imread('./runs/detect/exp/image0.jpg', flags=1)
+                        frame = cv2.cvtColor(frame, cv2.COLOR_BGR2RGB)
+                        add_img('./img/event-img/', frame, '着火了')
+                        fire_counter = 0
+
+            frame = cv2.imread('./runs/detect/exp/image0.jpg', flags=1)
+            frame = cv2.cvtColor(frame, cv2.COLOR_BGR2RGB)
+
+        if has_violence == '1':
+            frame = model2(frame)
+            frame = frame[0].plot()
+
+        if has_emotion == '1':
+            frame = frame
+
+        # time.sleep(0.1)
+        queueForSend.put(frame)
+
+
+def video_stream(request, id):
+
+    queueForGain = Queue()
+    queueForSend = Queue()
+
+    thread_generator = threading.Thread(target=video_generator, args=(queueForGain, id))
+    thread_generator.daemon = True
+    thread_generator.start()
+
+    thread_stream = threading.Thread(target=stream_thread, args=(queueForGain, queueForSend,id))
+    thread_stream.daemon = True
+    thread_stream.start()
+
+    def streamer():
+        while True:
+            frame = queueForSend.get()
+            ret, buffer = cv2.imencode('.jpg', frame)
+            frame = buffer.tobytes()
+            yield (b'--frame\r\n'
+                   b'Content-Type: image/jpeg\r\n\r\n' + frame + b'\r\n\r\n')
+
+    return StreamingHttpResponse(streamer(), content_type='multipart/x-mixed-replace; boundary=frame')
 
 
 def get_frame(id):
