@@ -6,10 +6,16 @@ from django.db.models import Q
 from django.http import JsonResponse
 
 from djangoProject import result
+from face_Module import FaceDepart
 from img import get_image_info_from_path
 from oldperson_info import models
 from oldperson_info.models import OldpersonInfo
 from rest_framework.decorators import api_view
+
+from video_catch import views_video_catch
+
+# 测试时间
+import time
 
 
 # 增加老人信息
@@ -25,7 +31,8 @@ def add(request):
         # print(last_id)
         image_file = request.FILES['img']
         data = json.loads(request.POST['old'])  # 获取老人信息的JSON数据
-        saved_path = 'C:/img/old/' + str(last_id + 1) + '.jpg'
+        name = data['name']
+        saved_path = './face_Module/face_db/old_' + name + str(last_id + 1) + '.jpg'
         # 创建OldpersonInfo对象并保存到数据库
         data['id'] = str(last_id + 1)
         data['img_url'] = saved_path
@@ -41,10 +48,10 @@ def add(request):
 
         # 返回图像保存路径和新创建的老人信息给前端
         response_data = {'msg': '老人信息和图像保存成功', 'path': saved_path, 'old_person': old_person.id}
+        FaceDepart.load_faces(views_video_catch.model, views_video_catch.faces_embedding, views_video_catch.face_db)
         return JsonResponse(response_data)
     else:
         return result.Result.data_null('数据不能为空')
-
 
 
 # 删除老人信息
@@ -66,11 +73,12 @@ def delete(request, id):
 # 更新老人信息
 @api_view(['PUT'])
 def update(request):
-    data = json.loads(request.dats['old'])  # 获取老人信息的JSON数据
+    data = json.loads(request.data['old'])  # 获取老人信息的JSON数据
     data_id = data['id']
     if 'img' in request.FILES:
         image_file = request.FILES['img']
-        saved_path = 'C:/img/old/' + data_id + '.jpg'
+        name = data['name']
+        saved_path = './face_Module/face_db/old_' + name + data_id + '.jpg'
         # 创建OldpersonInfo对象并保存到数据库
         data['img_url'] = saved_path
         with open(saved_path, 'wb') as f:
@@ -84,11 +92,10 @@ def update(request):
         # 你可以使用Django的默认存储设置来保存图像文件
         # 返回图像保存路径和新创建的老人信息给前端
         response_data = {'msg': '老人信息和图像保存成功'}
+        FaceDepart.load_faces(views_video_catch.model, views_video_catch.faces_embedding, views_video_catch.face_db)
         return JsonResponse(response_data)
     else:
         return result.Result.notfound("修改的数据不存在")
-
-
 
 
 # 根据条件查询

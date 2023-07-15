@@ -148,6 +148,6 @@ def cameraWithCap(model, faces_embedding, threshold,frame):
         # 在框上显示人名
         cv2.putText(frame, user_name, (x, y - 10), cv2.FONT_HERSHEY_SIMPLEX, 0.9, (0, 255, 0), 2)
 
-    return frame
+    return frame,
 
 

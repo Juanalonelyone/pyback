@@ -204,6 +204,10 @@ def video_stream(request, id):
     return StreamingHttpResponse(streamer(), content_type='multipart/x-mixed-replace; boundary=frame')
 
 
+def video_catch(request, id):
+    return StreamingHttpResponse(get_frame(id), content_type='multipart/x-mixed-replace; boundary=frame')
+
+
 def get_frame(id):
     cap1 = models.Cap.objects.get(id=id)
     has_face = cap1.has_face
@@ -224,60 +228,60 @@ def get_frame(id):
             break
         frame = cv2.resize(frame, (640, 480))
         # 火灾检测
-        if fire_counter == '1':
-            frame = model(frame)
-            # v5版本获取标签
-            predictions = frame.pandas().xyxy[0]
-
-            frame.save(exist_ok=True)
-
-            # 遍历每个检测结果
-            for index, row in predictions.iterrows():
-                class_name = row['name']
-                confidence = row['confidence']
-
-                #
-                if class_name == 'fire' and confidence > 0.3:
-                    fire_counter += 1
-                    print(fall_counter)
-                    if fire_counter >= 150:
-                        # TODU 插入数据库
-                        frame = cv2.imread('D:/work/mini/pyback/runs/detect/exp/image0.jpg', flags=1)
-                        frame = cv2.cvtColor(frame, cv2.COLOR_BGR2RGB)
-                        add_img('C:/img/event-img/', frame, '着火了')
-                        fire_counter = 0
-
-            frame = cv2.imread('D:/work/mini/pyback/runs/detect/exp/image0.jpg', flags=1)
-            frame = cv2.cvtColor(frame, cv2.COLOR_BGR2RGB)
-
-        if fall_counter == '1':
-            frame = model_fall(frame)
-
-            predictions = frame.pandas().xyxy[0]
-
-            frame.save(exist_ok=True)
-
-            # 遍历每个检测结果
-            for index, row in predictions.iterrows():
-                class_name = row['name']
-                confidence = row['confidence']
-
-                #
-                if class_name == 'fall detected' and confidence > 0.5:
-                    fall_counter += 1
-                    print(fall_counter)
-                    if fall_counter >= 150:
-                        # TODU 插入数据库
-                        frame = cv2.imread('D:/work/mini/pyback/runs/detect/exp/image0.jpg', flags=1)
-                        frame = cv2.cvtColor(frame, cv2.COLOR_BGR2RGB)
-                        add_img('C:/img/event-img/', frame, '摔倒了')
-                        fall_counter = 0
-            frame = cv2.imread('D:/work/mini/pyback/runs/detect/exp/image0.jpg', flags=1)
-            frame = cv2.cvtColor(frame, cv2.COLOR_BGR2RGB)
+        # if fire_counter == '1':
+        #     frame = model(frame)
+        #     # v5版本获取标签
+        #     predictions = frame.pandas().xyxy[0]
+        #
+        #     frame.save(exist_ok=True)
+        #
+        #     # 遍历每个检测结果
+        #     for index, row in predictions.iterrows():
+        #         class_name = row['name']
+        #         confidence = row['confidence']
+        #
+        #         #
+        #         if class_name == 'fire' and confidence > 0.3:
+        #             fire_counter += 1
+        #             print(fall_counter)
+        #             if fire_counter >= 150:
+        #                 # TODU 插入数据库
+        #                 frame = cv2.imread('D:/work/mini/pyback/runs/detect/exp/image0.jpg', flags=1)
+        #                 frame = cv2.cvtColor(frame, cv2.COLOR_BGR2RGB)
+        #                 add_img('C:/img/event-img/', frame, '着火了')
+        #                 fire_counter = 0
+        #
+        #     frame = cv2.imread('D:/work/mini/pyback/runs/detect/exp/image0.jpg', flags=1)
+        #     frame = cv2.cvtColor(frame, cv2.COLOR_BGR2RGB)
+        #
+        # if fall_counter == '1':
+        #     frame = model_fall(frame)
+        #
+        #     predictions = frame.pandas().xyxy[0]
+        #
+        #     frame.save(exist_ok=True)
+        #
+        #     # 遍历每个检测结果
+        #     for index, row in predictions.iterrows():
+        #         class_name = row['name']
+        #         confidence = row['confidence']
+        #
+        #         #
+        #         if class_name == 'fall detected' and confidence > 0.5:
+        #             fall_counter += 1
+        #             print(fall_counter)
+        #             if fall_counter >= 150:
+        #                 # TODU 插入数据库
+        #                 frame = cv2.imread('D:/work/mini/pyback/runs/detect/exp/image0.jpg', flags=1)
+        #                 frame = cv2.cvtColor(frame, cv2.COLOR_BGR2RGB)
+        #                 add_img('C:/img/event-img/', frame, '摔倒了')
+        #                 fall_counter = 0
+        #     frame = cv2.imread('D:/work/mini/pyback/runs/detect/exp/image0.jpg', flags=1)
+        #     frame = cv2.cvtColor(frame, cv2.COLOR_BGR2RGB)
 
         #
         # 暴力检测
-        # frame = model2(frame)
+        frame = model2(frame)
         # predictions = frame[0].boxes.xyxy
         # predictions = frame[0].boxes
         # predictions = predictions.cpu().numpy()
@@ -286,7 +290,7 @@ def get_frame(id):
         #         cls = int(box.cls[0])
         #         print(cls)
 
-        # frame = frame[0].plot()
+        frame = frame[0].plot()
         # predictions = predictions.shape
         # print(predictions)
         # for index, row in predictions:
