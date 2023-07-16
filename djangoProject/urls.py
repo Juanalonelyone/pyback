@@ -55,8 +55,8 @@ urlpatterns = [
     path('select_allWorker/', views_Worker.select),
 
     path('video/<id>', views_video_catch.video_stream),
-    path('stop-video-stream', views_video_catch.stop_video_stream, name='stop_video_stream'),
-    path('enable-video-stream', views_video_catch.enable_video_stream, name='enable_video_stream'),
+    path('stop_video_stream/', views_video_catch.stop_video_stream),
+    path('enable_video_stream/', views_video_catch.enable_video_stream),
     # path('video1/<id>', views_video_catch.video_stream),
     # path('video2/<id>', views_video_catch.video_stream),
     # 对摄像头进行操作

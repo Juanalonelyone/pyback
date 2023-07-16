@@ -6,17 +6,19 @@ import insightface
 import torch
 from PIL import Image
 from django.shortcuts import render
-from django.http import StreamingHttpResponse
+from django.http import StreamingHttpResponse, JsonResponse
 import cv2
 import numpy as np
 # import tensorflow as tf
 import datetime
 
 import face_recognition
+from rest_framework.decorators import api_view
 
 from ultralytics import YOLO
 from ultralytics.yolo.utils.ops import non_max_suppression
 
+from djangoProject import settings
 # from fall_detection import FallDetection
 # from falldetectioninterface import falldetection
 from video_catch import models
@@ -33,7 +35,7 @@ threshold = 1.24
 det_thresh = 0.50
 det_size = (640, 640)
 # test thread control
-thread_stop = False
+
 
 # model1 = torch.hub.load('D:/work/mini/pyback/yolov5master', 'custom', 'D:/work/mini/pyback/best.pt',
 #                         source='local')
@@ -75,17 +77,17 @@ FaceDepart.load_faces(model, faces_embedding, face_db_path=face_db)
 
 def video_generator(queueForGain, id):
     readCap = models.Cap.objects.get(id=id)
-    cap = None
     if readCap.url == '0':
         cap = cv2.VideoCapture(0)
     else:
         cap = cv2.VideoCapture(readCap.url)
+    print("摄像头正在运行：id:", id)
 
     if cap.isOpened():
         print("ok")
     else:
         print("video_generator done")
-    while not thread_stop:
+    while not settings.GLOBULE_THREAD_STOP:
         queueForGain.put(cap.read()[1])
         queueForGain.get() if queueForGain.qsize() > 1 else time.sleep(0.01)
 
@@ -104,7 +106,7 @@ def stream_thread(queueForGain, queueForSend, id):
     fire_counter = 0
     unknown_counter = 0
 
-    while not thread_stop:
+    while not settings.GLOBULE_THREAD_STOP:
         frame = queueForGain.get()
         # 调用算法全加这里！！！！！！！！！！！！！！！！！！！！！！！！！！
         frame = cv2.resize(frame, (640, 480))
@@ -200,12 +202,14 @@ def video_stream(request, id):
     thread_stream.start()
 
     def streamer():
-        while not thread_stop:
+        while not settings.GLOBULE_THREAD_STOP:
             frame = queueForSend.get()
             ret, buffer = cv2.imencode('.jpg', frame)
             frame = buffer.tobytes()
             yield (b'--frame\r\n'
                    b'Content-Type: image/jpeg\r\n\r\n' + frame + b'\r\n\r\n')
+        print("streamer停止")
+
 
     return StreamingHttpResponse(streamer(), content_type='multipart/x-mixed-replace; boundary=frame')
 
@@ -214,16 +218,18 @@ def video_catch(request, id):
     return StreamingHttpResponse(get_frame(id), content_type='multipart/x-mixed-replace; boundary=frame')
 
 
+@api_view(['GET'])
 def stop_video_stream(request):
-    global thread_stop
-    thread_stop = True
-    # return JsonResponse({'message':'视频停止'})
+
+    settings.GLOBULE_THREAD_STOP = True
+    return JsonResponse({'message': '视频停止'})
 
 
+@api_view(['GET'])
 def enable_video_stream(request):
     global thread_stop
-    thread_stop = False
-    # return JsonResponse({'message':'视频停止'})
+    settings.GLOBULE_THREAD_STOP = False
+    return JsonResponse({'message': '视频停止'})
 
 
 # no used
@@ -369,10 +375,10 @@ def add_img(path, frame, event_desc):
         last_event = int(last_event.id + 1)
     today_time = datetime.datetime.today()
     str_today_time = today_time.strftime("%Y/{month}/{day} %H:%M:%S".format(month=str(today_time.month).lstrip('0'),
-                                                                        day=str(today_time.day).lstrip('0')))
+                                                                            day=str(today_time.day).lstrip('0')))
     # 将本地时间转换为字符串
     today_time_string = today_time.strftime("%Y-{month}-{day}-%H-%M-%S".format(month=str(today_time.month).lstrip('0'),
-                                                                        day=str(today_time.day).lstrip('0')))
+                                                                               day=str(today_time.day).lstrip('0')))
 
     cv2.imwrite(path + today_time_string + '.jpg', frame)
     models.Event.objects.create(id=last_event, old_id=None, location='餐厅', time=str_today_time, desc=event_desc,
