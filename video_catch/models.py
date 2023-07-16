@@ -18,6 +18,7 @@ class OldpersonInfo(models.Model):
         managed = False
         db_table = 'oldperson_info'
 
+
 class Event(models.Model):
     id = models.IntegerField(primary_key=True)
     old = models.ForeignKey('OldpersonInfo', models.DO_NOTHING, blank=True, null=True)
@@ -29,6 +30,8 @@ class Event(models.Model):
     class Meta:
         managed = False
         db_table = 'event'
+
+
 
 class Cap(models.Model):
     id = models.CharField(primary_key=True, max_length=255)

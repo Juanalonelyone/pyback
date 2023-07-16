@@ -20,6 +20,7 @@ class OldpersonInfo(models.Model):
         db_table = 'oldperson_info'
 
 
+
 class Event(models.Model):
     id = models.IntegerField(primary_key=True)
     old_id = models.CharField(primary_key=False, max_length=255)
@@ -30,4 +31,5 @@ class Event(models.Model):
     class Meta:
         managed = False
         db_table = 'event'
+
         

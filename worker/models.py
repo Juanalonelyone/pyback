@@ -15,3 +15,4 @@ class Worker(models.Model):
     class Meta:
         managed = True
         db_table = 'worker'
+

@@ -42,7 +42,8 @@ INSTALLED_APPS = [
     'vol',
     'video_catch',
     'corsheaders',
-    'cap'
+    'cap',
+    'drf_yasg',
 ]
 
 MIDDLEWARE = [
@@ -135,6 +136,13 @@ CORS_ALLOWED_ORIGINS = [
     'http://127.0.0.1:5173',
     'http://localhost:8080'
 ]
+
+REST_FRAMEWORK = {
+    # 指定用于支持coreapi的Schema
+    'DEFAULT_SCHEMA_CLASS': 'rest_framework.schemas.coreapi.AutoSchema',
+}
+
+
 
 GLOBULE_THREAD_STOP = False
 GlOBAL_ALARM_START = False
