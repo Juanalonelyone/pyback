@@ -35,6 +35,13 @@ threshold = 1.24
 det_thresh = 0.50
 det_size = (640, 640)
 # test thread control
+import threading
+
+
+
+#alarmPath
+import pygame
+
 
 
 # model1 = torch.hub.load('D:/work/mini/pyback/yolov5master', 'custom', 'D:/work/mini/pyback/best.pt',
@@ -201,17 +208,27 @@ def video_stream(request, id):
     thread_stream.daemon = True
     thread_stream.start()
 
+    audio_thread = threading.Thread(target=play_audio, args=("audio_file.wav",))
+    audio_thread.start()
+
     def streamer():
         while not settings.GLOBULE_THREAD_STOP:
             frame = queueForSend.get()
             ret, buffer = cv2.imencode('.jpg', frame)
             frame = buffer.tobytes()
+            if settings.GlOBAL_ALARM_START:
+                thread_alarm = threading.Thread(target=play_audio, args=())
+                thread_alarm.start()
+                thread_alarm.join()
+                settings.GlOBAL_ALARM_START = False
             yield (b'--frame\r\n'
                    b'Content-Type: image/jpeg\r\n\r\n' + frame + b'\r\n\r\n')
         print("streamer停止")
 
 
     return StreamingHttpResponse(streamer(), content_type='multipart/x-mixed-replace; boundary=frame')
+
+
 
 
 def video_catch(request, id):
@@ -368,6 +385,13 @@ def get_frame(id):
 
 
 def add_img(path, frame, event_desc):
+    #Alarm control
+    if settings.GlOBAL_ALARM_START:
+        print("already alarming")
+    else:
+        settings.GlOBAL_ALARM_START = True
+        print("start alarming")
+
     last_event = models.Event.objects.last()
     if last_event is None:
         last_event = 0
@@ -385,3 +409,10 @@ def add_img(path, frame, event_desc):
                                 img_url=path + today_time_string + '.jpg')
 
     return True
+
+
+def play_audio():
+    pygame.mixer.init()
+    pygame.mixer.music.load('./alarm.wav')
+    pygame.mixer.music.set_volume(0.5)
+    pygame.mixer.music.play()
