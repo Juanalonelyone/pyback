@@ -102,6 +102,7 @@ def video_generator(queueForGain, id):
 def stream_thread(queueForGain, queueForSend, id):
     # 读取算法权限
     cap = models.Cap.objects.get(id=id)
+    name = cap.name
     has_face = cap.has_face
     has_emotion = cap.has_emotion
     has_fall = cap.has_fall
@@ -122,7 +123,7 @@ def stream_thread(queueForGain, queueForSend, id):
             if unknown:
                 unknown_counter += 1
                 if unknown_counter > 150:
-                    add_img('./img/event-img/face/', frame, '识别到陌生人')
+                    add_img('./img/event-img/face/',name , frame, '识别到陌生人')
                     unknown_counter = 0
 
         if has_fall == '1':
@@ -141,7 +142,7 @@ def stream_thread(queueForGain, queueForSend, id):
                         # TODU 插入数据库
                         frame = cv2.imread('./runs/detect/fall' + id + '/image0.jpg', flags=1)
                         frame = cv2.cvtColor(frame, cv2.COLOR_BGR2RGB)
-                        add_img('./img/event-img/fall/', frame, '摔倒了')
+                        add_img('./img/event-img/fall/',name, frame, '有人摔倒')
                         fall_counter = 0
             frame = cv2.imread('./runs/detect/fall' + id + '/image0.jpg', flags=1)
             frame = cv2.cvtColor(frame, cv2.COLOR_BGR2RGB)
@@ -162,7 +163,7 @@ def stream_thread(queueForGain, queueForSend, id):
                         # TODU 插入数据库
                         frame = cv2.imread('./runs/detect/fire' + id + '/image0.jpg', flags=1)
                         frame = cv2.cvtColor(frame, cv2.COLOR_BGR2RGB)
-                        add_img('./img/event-img/fire/', frame, '着火了')
+                        add_img('./img/event-img/fire/',name, frame, '着火了')
                         fire_counter = 0
 
             frame = cv2.imread('./runs/detect/fire' + id + '/image0.jpg', flags=1)
@@ -188,7 +189,7 @@ def stream_thread(queueForGain, queueForSend, id):
                         # TODU 插入数据库
                         frame = cv2.imread('./runs/detect/emotion' + id + '/image0.jpg', flags=1)
                         frame = cv2.cvtColor(frame, cv2.COLOR_BGR2RGB)
-                        add_img('./img/event-img/emotion/', frame, '老人很生气')
+                        add_img('./img/event-img/emotion/', name, frame, '老人很生气')
                         fall_counter = 0
             frame = cv2.imread('./runs/detect/emotion' + id + '/image0.jpg', flags=1)
             frame = cv2.cvtColor(frame, cv2.COLOR_BGR2RGB)
@@ -208,19 +209,19 @@ def video_stream(request, id):
     thread_stream.daemon = True
     thread_stream.start()
 
-    audio_thread = threading.Thread(target=play_audio, args=("audio_file.wav",))
-    audio_thread.start()
+    # audio_thread = threading.Thread(target=play_audio, args=("audio_file.wav",))
+    # audio_thread.start()
 
     def streamer():
         while not settings.GLOBULE_THREAD_STOP:
             frame = queueForSend.get()
             ret, buffer = cv2.imencode('.jpg', frame)
             frame = buffer.tobytes()
-            if settings.GlOBAL_ALARM_START:
-                thread_alarm = threading.Thread(target=play_audio, args=())
-                thread_alarm.start()
-                thread_alarm.join()
-                settings.GlOBAL_ALARM_START = False
+            # if settings.GlOBAL_ALARM_START:
+            #     thread_alarm = threading.Thread(target=play_audio, args=())
+            #     thread_alarm.start()
+            #     thread_alarm.join()
+            #     settings.GlOBAL_ALARM_START = False
             yield (b'--frame\r\n'
                    b'Content-Type: image/jpeg\r\n\r\n' + frame + b'\r\n\r\n')
         print("streamer停止")
@@ -384,7 +385,7 @@ def get_frame(id):
     cap.release()
 
 
-def add_img(path, frame, event_desc):
+def add_img(path, name, frame, event_desc):
     #Alarm control
     if settings.GlOBAL_ALARM_START:
         print("already alarming")
@@ -405,7 +406,7 @@ def add_img(path, frame, event_desc):
                                                                                day=str(today_time.day).lstrip('0')))
 
     cv2.imwrite(path + today_time_string + '.jpg', frame)
-    models.Event.objects.create(id=last_event, old_id=None, location='餐厅', time=str_today_time, desc=event_desc,
+    models.Event.objects.create(id=last_event, old_id=None, location=name, time=str_today_time, desc=event_desc,
                                 img_url=path + today_time_string + '.jpg')
 
     return True

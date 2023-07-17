@@ -27,8 +27,9 @@ def add(request):
             last_id = int(last_worker.id)
         # print(last_id)
         image_file = request.FILES['img']
-        data = json.loads(request.POST['worker'])  # 获取老人信息的JSON数据
-        saved_path = './face_Module/face_db/worker_' + str(last_id + 1) + '.jpg'
+        data = json.loads(request.POST['worker'])  # 获取工作人员信息的JSON数据
+        name = data['name']
+        saved_path = './face_Module/face_db/worker_' + name + '_' + str(last_id + 1) + '.jpg'
         # 创建OldpersonInfo对象并保存到数据库
         data['id'] = str(last_id + 1)
         data['img_url'] = saved_path
@@ -70,7 +71,8 @@ def update(request):
     data_id = data['id']
     if 'img' in request.FILES:
         image_file = request.FILES['img']
-        saved_path = './face_Module/face_db/worker_' + data_id + '.jpg'
+        name = data['name']
+        saved_path = './face_Module/face_db/worker_' + name + '_' + data_id + '.jpg'
         # 创建OldpersonInfo对象并保存到数据库
         data['img_url'] = saved_path
         with open(saved_path, 'wb') as f:

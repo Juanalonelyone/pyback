@@ -78,7 +78,7 @@ def update(request):
     if 'img' in request.FILES:
         image_file = request.FILES['img']
         name = data['name']
-        saved_path = './face_Module/face_db/old_' + name + data_id + '.jpg'
+        saved_path = './face_Module/face_db/old_' + name + '_' + data_id + '.jpg'
         # 创建OldpersonInfo对象并保存到数据库
         data['img_url'] = saved_path
         with open(saved_path, 'wb') as f:
